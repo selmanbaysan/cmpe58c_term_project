@@ -1,0 +1,8 @@
+              precision    recall  f1-score   support
+
+      Indoor       1.00      0.99      0.99      1000
+     Outdoor       0.99      1.00      1.00      1000
+
+    accuracy                           0.99      2000
+   macro avg       1.00      0.99      0.99      2000
+weighted avg       1.00      0.99      0.99      2000

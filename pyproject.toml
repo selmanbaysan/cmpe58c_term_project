@@ -1,0 +1,26 @@
+[project]
+name = "indoor-outdoor-detection"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "selmanbaysan",email = "mselmanbaysan@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "datasets",
+    "matplotlib",
+    "scikit-learn",
+    "seaborn",
+    "pandas",
+    "streamlit",
+    "watchdog",
+    "opencv-python<4.10.0",
+    "numpy (>=1.26.0,<2.0.0)",
+    "transformers (>=4.57.3,<5.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -13,7 +13,7 @@ import torch
 st.set_page_config(page_title="Indoor/Outdoor Classifier", layout="wide")
 
 # Paths and Constants
-LOCAL_MODEL_PATH = 'models/indoor_outdoor_efficientnet.h5'
+LOCAL_MODEL_PATH = 'models/indoor_outdoor_efficientnet_finetuned.keras'
 HF_MODEL_NAME = "prithivMLmods/IndoorOutdoorNet"
 CLASSES = ['Indoor', 'Outdoor']
 
@@ -45,9 +45,13 @@ def predict_local(model, image_array):
     
     img_expanded = np.expand_dims(img, axis=0)
     
-    pred_prob = model.predict(img_expanded, verbose=0)[0][0]
-    label = CLASSES[1] if pred_prob > 0.5 else CLASSES[0]
-    confidence = pred_prob if pred_prob > 0.5 else 1 - pred_prob
+    preds = model.predict(img_expanded, verbose=0)
+    # Output structure: [[prob_indoor, prob_outdoor]]
+    pred_idx = np.argmax(preds, axis=1)[0]
+    pred_prob = preds[0][pred_idx]
+    
+    label = CLASSES[pred_idx]
+    confidence = pred_prob
     return label, confidence
 
 def predict_hf(processor, model, image_array):
@@ -62,7 +66,7 @@ def predict_hf(processor, model, image_array):
 
 # Sidebar
 st.sidebar.title("Navigation")
-mode = st.sidebar.radio("Go to", ["Image Inference", "Real-time Video", "Live Test Mode"])
+mode = st.sidebar.radio("Go to", ["Image Inference", "Real-time Video", "Video File Inference", "Live Test Mode"])
 
 st.title("Indoor/Outdoor Scene Classification")
 
@@ -178,3 +182,35 @@ elif mode == "Live Test Mode":
         METRIC_PLACEHOLDER.metric("Live Accuracy", f"{accuracy:.2%}", f"{st.session_state.total_count} frames")
         
     camera.release()
+    
+elif mode == "Video File Inference":
+    st.header("Video File Inference")
+    uploaded_video = st.file_uploader("Upload a Video", type=["mp4", "mov", "avi"])
+    
+    if uploaded_video is not None:
+        import tempfile
+        tfile = tempfile.NamedTemporaryFile(delete=False) 
+        tfile.write(uploaded_video.read())
+        
+        cap = cv2.VideoCapture(tfile.name)
+        
+        st_frame = st.empty()
+        
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Predict
+            label, conf = predict_local(local_model, frame)
+            
+            # Overlay
+            color = (0, 255, 0) if label == 'Outdoor' else (0, 0, 255)
+            text = f"{label} ({conf:.2%})"
+            cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+            
+            st_frame.image(frame)
+            
+        cap.release()
