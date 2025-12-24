@@ -8,9 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix
 
-# ==========================================
-# Configuration
-# ==========================================
 HF_DATASET_ID = "prithivMLmods/IndoorOutdoorNet-20K"
 IMG_SIZE = 224
 BATCH_SIZE = 32
