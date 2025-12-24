@@ -23,7 +23,6 @@ tf.random.set_seed(42)
 np.random.seed(42)
 
 def configure_gpu():
-    """Configures TensorFlow to use the GPU (MPS on Mac) if available."""
     try:
         gpus = tf.config.list_physical_devices('GPU')
         if gpus:
@@ -110,10 +109,6 @@ def main():
 
     model = keras.Model(inputs=base_model.input, outputs=outputs, name="EfficientNet_Phase1")
     
-    # Use legacy optimizer for M1/M2 usually recommended to avoid some silent failures
-    # But user saw a warning about slowness. The crash happened later. 
-    # Let's stick to standard Adam but maybe use legacy if user wants.
-    # The crash was ReMapper which is graph optimization.
     optimizer = keras.optimizers.Adam(learning_rate=LEARNING_RATE_INITIAL)
     
     model.compile(
@@ -128,7 +123,7 @@ def main():
         keras.callbacks.ModelCheckpoint(
             filepath=MODEL_PHASE1_PATH,
             save_best_only=True,
-            monitor="val_loss", # Use val_loss for best model
+            monitor="val_loss", 
             verbose=1
         ),
         keras.callbacks.EarlyStopping(
@@ -147,8 +142,5 @@ def main():
         callbacks=callbacks
     )
     
-    # Explicitly save final state if early stopping didn't trigger last save
-    # model.save(MODEL_PHASE1_PATH) # Redundant if checkpoint saves best.
-
 if __name__ == "__main__":
     main()

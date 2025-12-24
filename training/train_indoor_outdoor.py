@@ -13,7 +13,7 @@ HF_DATASET_ID = "prithivMLmods/IndoorOutdoorNet-20K"
 IMG_SIZE = 224
 BATCH_SIZE = 32
 NUM_CLASSES = 2
-CLASSES = ['Indoor', 'Outdoor'] # Assuming 0: Indoor, 1: Outdoor order, will verify from dataset features if possible
+CLASSES = ['Indoor', 'Outdoor'] 
 INITIAL_EPOCHS = 20
 FINE_TUNE_EPOCHS = 10
 LEARNING_RATE_INITIAL = 1e-2
@@ -43,27 +43,16 @@ configure_gpu()
 
 def main():
     print(f"Loading dataset: {HF_DATASET_ID}...")
-    # Load dataset from Hugging Face
-    # The dataset is expected to have 'image' and 'label' columns
     ds = load_dataset(HF_DATASET_ID)
     
     # Check dataset structure
     print("Dataset structure:")
     print(ds)
     
-    # Combine if splits are not standard or if we want to ensure our own clean split
-    # If the dataset already has train/test/val, we can use them, but user requested:
-    # "make sure train and test split does not leaked" -> defaulting to re-splitting a single source if needed.
-    # Usually simple HF datasets come with 'train'.
-    
     if 'train' in ds and 'test' not in ds:
         print("Splitting 'train' into Train/Val/Test...")
-        # Split Train -> 90% Train+Val, 10% Test
         split1 = ds['train'].train_test_split(test_size=0.1, seed=42, stratify_by_column="label")
         ds_test = split1['test']
-        
-        # Split Train+Val -> 89% Train, 11% Val (approx 80/10/10 overall)
-        # 0.9 * 0.111 = 0.1
         split2 = split1['train'].train_test_split(test_size=0.1111, seed=42, stratify_by_column="label") 
         ds_train = split2['train']
         ds_val = split2['test']
@@ -73,12 +62,11 @@ def main():
          ds_val = ds['validation']
          ds_test = ds['test']
     else:
-        # Fallback generic split
         print("Generic splitting...")
         full_ds = ds['train'] if 'train' in ds else ds[list(ds.keys())[0]]
         split1 = full_ds.train_test_split(test_size=0.2, seed=42)
         ds_test = split1['test']
-        split2 = split1['train'].train_test_split(test_size=0.1, seed=42) # 10% of remaining 80%
+        split2 = split1['train'].train_test_split(test_size=0.1, seed=42)
         ds_val = split2['test']
         ds_train = split2['train']
 
@@ -86,13 +74,8 @@ def main():
     print(f"Val size: {len(ds_val)}")
     print(f"Test size: {len(ds_test)}")
 
-    # ==========================================
-    # Preprocessing
-    # ==========================================
     def preprocess_image(examples):
-        # Convert PIL images to RGB and resize
         images = [img.convert("RGB").resize((IMG_SIZE, IMG_SIZE)) for img in examples["image"]]
-        # Convert to numpy array
         images = [np.array(img) for img in images]
         
         # Labels to integer
@@ -100,12 +83,6 @@ def main():
         
         return {"pixel_values": images, "label": labels}
 
-    # Use TF Data for efficient pipeline
-    # We can use the huggingface to_tf_dataset, but manual mapping gives control over resizing if we did it in python.
-    # However, doing resize in python via .map might be slow. 
-    # Better approach: Use TF mapping.
-    
-    # Create generator
     def create_tf_dataset(hf_ds, shuffle=False):
         def generator():
             for sample in hf_ds:
@@ -120,11 +97,8 @@ def main():
         
         dataset = tf.data.Dataset.from_generator(generator, output_signature=output_signature)
         
-        # Transformations
         def process(image, label):
             image = tf.image.resize(image, (IMG_SIZE, IMG_SIZE))
-            # EfficientNet expects [0, 255] inputs as per documentation (it includes normalization layer).
-            # So no /255.0 here.
             label = tf.one_hot(label, NUM_CLASSES)
             return image, label
 
@@ -141,12 +115,8 @@ def main():
     val_ds = create_tf_dataset(ds_val, shuffle=False)
     test_ds = create_tf_dataset(ds_test, shuffle=False)
 
-    # ==========================================
-    # Model Definition
-    # ==========================================
     print("Building model...")
     # 1. Base Model
-    # input_shape=(224, 224, 3)
     base_model = tf.keras.applications.EfficientNetB0(
         include_top=False,
         weights="imagenet",
@@ -221,29 +191,11 @@ def main():
     print("Reloading model...")
     model = keras.models.load_model(temp_model_path)
     
-    # Unfreeze specific layers
-    # "We unfreeze the top 20 layers while leaving BatchNorm layers frozen"
-    base_model_layer = model.layers[0] # EfficientNetB0 is the first layer in our Functional model if constructed this way?
-    # Wait, in the original script: model = keras.Model(inputs=base_model.input, outputs=outputs)
-    # So the layers of 'model' ARE the layers of base_model + top layers. 
-    # Actually, EfficientNetB0 returns a Functional model, so 'base_model' is a model distinct from 'model'.
-    # But when we did 'x = base_model.output', 'base_model' became part of the graph. 
-    # Let's inspect model.layers to be safe. 
-    # Typically efficientnet is a big graph of layers.
-    
-    # Let's rely on the fact that we can iterate model.layers.
-    # However, since we reloaded, the 'base_model' variable is gone.
-    # We need to find the layers to unfreeze.
-    
-    # Strategy: Unfreeze top 20 layers of the ENTIRE model, skipping BatchNormalization.
     model.trainable = True
     
-    # Freeze all layers first
     for layer in model.layers:
         layer.trainable = False
         
-    # Unfreeze top 20 non-BN layers
-    # We iterate backwards
     unfreeze_count = 0
     for layer in reversed(model.layers):
         if unfreeze_count >= 20:
@@ -271,9 +223,6 @@ def main():
     # Add to total epochs
     total_epochs = INITIAL_EPOCHS + FINE_TUNE_EPOCHS
     
-    # Note: history_phase1 is lost from memory after clear_session unless we saved the data.
-    # We can perform a new fit call. 'initial_epoch' is for logging/callbacks continuity.
-    
     history_phase2 = model.fit(
         train_ds,
         epochs=total_epochs,
@@ -290,7 +239,6 @@ def main():
     print(f"Test Accuracy: {acc:.4f}")
     print(f"Test Loss: {loss:.4f}")
     
-    # Plotting code (optional save)
     def plot_history(h1, h2):
         acc = h1.history['accuracy'] + h2.history['accuracy']
         val_acc = h1.history['val_accuracy'] + h2.history['val_accuracy']

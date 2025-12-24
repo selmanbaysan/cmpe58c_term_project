@@ -40,9 +40,6 @@ def configure_gpu():
 configure_gpu()
 
 def get_datasets():
-    # ... Same dataset logic as Phase 1 ...
-    # Ideally reuse code, but for simplicity of execution we copy.
-    # We need same splits! Seed '42' ensures this.
     print(f"Loading dataset: {HF_DATASET_ID}...")
     ds = load_dataset(HF_DATASET_ID)
     
@@ -100,7 +97,6 @@ def main():
     
     print("Phase 2: Fine-tuning...")
     
-    # Strategy: Unfreeze top 20 layers of the ENTIRE model, skipping BatchNormalization.
     model.trainable = True
     
     for layer in model.layers:
@@ -136,7 +132,7 @@ def main():
         ),
         keras.callbacks.EarlyStopping(
             monitor="val_loss", 
-            patience=4, # Slightly more patience for fine-tuning
+            patience=4, 
             restore_best_weights=True
         ),
         keras.callbacks.CSVLogger(LOG_FILE)
@@ -154,9 +150,6 @@ def main():
     loss, acc = model.evaluate(test_ds)
     print(f"Test Accuracy: {acc:.4f}")
     print(f"Test Loss: {loss:.4f}")
-    
-    # Simple Plot combining log files would be done by reading CSVs if needed, 
-    # but user can just look at logs.
 
 if __name__ == "__main__":
     main()
