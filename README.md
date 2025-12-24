@@ -16,7 +16,7 @@ This project implements a robust deep learning model to classify images and vide
 
 ---
 
-## 🛠 Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 -   **Operating System**: macOS (Apple Silicon M1/M2/M3 recommended for GPU acceleration).
@@ -51,7 +51,7 @@ poetry run pip install torch torchvision protobuf==3.20.3
 
 ---
 
-## 🚀 Running the Application
+## Running the Application
 
 To launch the Streamlit web interface:
 
@@ -62,7 +62,7 @@ This will open the app in your default browser (usually `http://localhost:8501`)
 
 ---
 
-## 📊 Evaluation & Benchmarking
+## Evaluation & Benchmarking
 
 ### Compare with Hugging Face Model
 To evaluate the original pre-trained model against our fine-tuned model:
@@ -84,7 +84,7 @@ poetry run python benchmark_inference.py
 
 ---
 
-## 🧠 Training (Optional)
+## Training 
 
 If you wish to retrain the model from scratch:
 
@@ -99,8 +99,3 @@ If you wish to retrain the model from scratch:
 
 *Note: Scripts are located in `training/` folder.*
 
----
-
-## 📄 Project Report
-For a detailed technical report on the methodology, challenges, and results, please refer to:
-[Project Report](project_report.md)

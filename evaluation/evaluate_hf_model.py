@@ -28,7 +28,6 @@ def get_test_dataset():
     print(f"Loading dataset {HF_DATASET_ID}...")
     ds = load_dataset(HF_DATASET_ID)
     
-    # Replicate split logic to attempt to get a similar test set
     if 'train' in ds and 'test' not in ds:
         # train_indoor_outdoor.py usage:
         # split1 = ds['train'].train_test_split(test_size=0.1, seed=42, stratify_by_column="label") 
@@ -58,11 +57,8 @@ def evaluate_hf_model():
     model.to(device)
     model.eval()
 
-    # Check model labels
     id2label = model.config.id2label
     print(f"Model id2label: {id2label}")
-    # Usually {0: 'Indoor', 1: 'Outdoor'} or similar. 
-    # If not present, we assume 0/1 map to Indoor/Outdoor.
     
     ds_test = get_test_dataset()
     
@@ -70,9 +66,6 @@ def evaluate_hf_model():
     pred_labels = []
     
     print("Running predictions...")
-    
-    # Process in batches manually or simpler loop
-    # For 2000 images, simple loop with batching logic is fine.
     
     batch_images = []
     batch_labels = []
@@ -103,10 +96,6 @@ def evaluate_hf_model():
 
     # Generate Metrics
     target_names = ["Indoor", "Outdoor"] # Assumption based on id2label {0: Indoor, 1: Outdoor}
-    
-    # If model has specific id2label, we should map predictions to strings then to our target indices, 
-    # but usually fine-tuned models on specific datasets align indices. 
-    # Let's verify id2label output in logs.
     
     print("\nClassification Report:")
     report = classification_report(true_labels, pred_labels, target_names=target_names)
