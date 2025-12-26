@@ -81,22 +81,24 @@ if mode == "Image Inference":
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert('RGB')
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-        
         # Convert to numpy for existing functions
         image_np = np.array(image)
         
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns([0.6, 0.4])
         
         with col1:
-            st.subheader("Local Model (EfficientNet)")
-            label_local, conf_local = predict_local(local_model, image_np)
-            st.metric(label="Prediction", value=label_local, delta=f"{conf_local:.2%}")
+            st.image(image, caption="Uploaded Image", use_container_width=True)
             
         with col2:
-            st.subheader("HF Model (IndoorOutdoorNet)")
+            st.subheader("Local Model")
+            label_local, conf_local = predict_local(local_model, image_np)
+            st.metric(label="EfficientNet Prediction", value=label_local, delta=f"{conf_local:.2%}")
+            
+            st.divider()
+            
+            st.subheader("HF Model")
             label_hf, conf_hf = predict_hf(hf_processor, hf_model, image_np)
-            st.metric(label="Prediction", value=label_hf, delta=f"{conf_hf:.2%}")
+            st.metric(label="SigLip Prediction", value=label_hf, delta=f"{conf_hf:.2%}")
 
 elif mode == "Real-time Video":
     st.header("Real-time Video Inference")

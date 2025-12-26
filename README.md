@@ -67,7 +67,7 @@ This will open the app in your default browser (usually `http://localhost:8501`)
 ### Compare with Hugging Face Model
 To evaluate the original pre-trained model against our fine-tuned model:
 ```bash
-./run_hf_evaluation.sh
+poetry run python evaluate_hf_model.py
 ```
 
 ### Save Misclassified Images
